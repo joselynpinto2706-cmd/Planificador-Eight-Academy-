@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eight Academy - Planificador Curricular & Asistente IA 2026-2027</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SheetJS para importación/exportación de archivos Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    
+    body { 
+      font-family: 'Inter', sans-serif; 
+    }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Estilos de Impresión Oficial */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: black !important; padding: 0 !important; }
+      .print-full-width { width: 100% !important; max-width: 100% !important; margin: 0 !important; }
+      .print-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; margin-bottom: 12px !important; }
+      textarea { border: none !important; resize: none !important; background: transparent !important; padding: 0 !important; }
+      .print-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col custom-scrollbar">
+
+  <!-- Modal Modal para Avisos -->
+  <div id="custom-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+      <div class="flex items-center space-x-3 mb-4">
+        <div id="modal-icon-bg" class="w-10 h-10 rounded-xl flex items-center justify-center bg-indigo-100 text-indigo-600">
+          <i id="modal-icon" class="fa-solid fa-circle-info text-lg"></i>
+        </div>
+        <h3 id="modal-title" class="text-lg font-bold text-slate-800">Notificación</h3>
+      </div>
+      <p id="modal-body" class="text-slate-600 text-xs sm:text-sm mb-6 leading-relaxed"></p>
+      <div class="flex justify-end">
+        <button onclick="closeModal()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-all shadow-md">
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra Superior del Sistema Lectivo -->
+  <div class="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white text-xs py-2 px-4 no-print border-b border-indigo-900/50 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2">
+      <div class="flex items-center space-x-3">
+        <span class="bg-emerald-500/20 text-emerald-300 font-extrabold px-3 py-0.5 rounded-full border border-emerald-500/30 flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Año Lectivo 2026 - 2027</span>
+        </span>
+        <span class="text-slate-600">|</span>
+        <span id="current-week-banner" class="text-slate-200 font-medium flex items-center gap-1">
+          <i class="fa-solid fa-calendar-check text-indigo-400"></i>
+          <span>Cargando sincronización de fechas lectivas...</span>
+        </span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+          <i class="fa-solid fa-school text-amber-400"></i> Eight Academy Ecuador
+        </span>
+        <span id="saved-indicator" class="text-emerald-400 font-bold hidden flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
+          <i class="fa-solid fa-floppy-disk"></i> Guardado en vivo
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex-1 flex flex-col max-w-7xl w-full mx-auto my-0 sm:my-4 gap-4 px-2 sm:px-4">
+
+    <!-- Top Navigation Tabs Bar -->
+    <nav class="bg-white rounded-2xl p-2 shadow-sm border border-slate-200/80 flex flex-wrap items-center justify-between gap-2 no-print">
+      <div class="flex items-center space-x-2">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/30 ml-1">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-sm text-slate-900 tracking-tight leading-none">Eight Academy</h1>
+          <p class="text-[10px] text-indigo-600 font-bold uppercase tracking-wider">Planificador ERCA & IA</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex items-center space-x-1 overflow-x-auto custom-scrollbar py-1">
+        <button onclick="switchTab('tab-erca')" id="btn-tab-erca" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-sm">
+          <i class="fa-solid fa-calendar-week"></i>
+          <span>Plan Semanal ERCA</span>
+        </button>
+        <button onclick="switchTab('tab-mapeo')" id="btn-tab-mapeo" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+          <i class="fa-solid fa-map"></i>
+          <span>Mapeo Curricular Anual</span>
+        </button>
+        <button onclick="switchTab('tab-ia')" id="btn-tab-ia" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+          <i class="fa-solid fa-wand-magic-sparkles text-purple-600"></i>
+          <span>Asistente IA Gemini</span>
+        </button>
+        <button onclick="switchTab('tab-nee')" id="btn-tab-nee" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+          <i class="fa-solid fa-brain text-emerald-600"></i>
+          <span>Estrategias NEE / DUA</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="flex-1 flex flex-col md:flex-row gap-4 min-w-0">
+
+      <aside class="w-full md:w-80 bg-slate-900 text-white rounded-2xl p-5 shadow-xl flex flex-col justify-between space-y-6 no-print border border-slate-800">
+        <div class="space-y-5">
+          
+          <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+            <span class="text-xs font-extrabold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-sliders"></i> Configuración Lectiva
+            </span>
+            <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">Subnivel Medio</span>
+          </div>
+
+          <!-- Asignatura Selector -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <i class="fa-solid fa-book-bookmark text-indigo-400 mr-1"></i> Asignatura:
+            </label>
+            <select id="select-subject" onchange="changeSubject()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium">
+              <option value="Lengua">Lengua y Literatura (4to EGB)</option>
+              <option value="Matematica">Matemática (4to EGB)</option>
+              <option value="Naturales">Ciencias Naturales (4to EGB)</option>
+              <option value="Sociales">Estudios Sociales (4to EGB)</option>
+            </select>
+          </div>
+
+          <!-- Semana Lectiva Selector -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <i class="fa-solid fa-clock-rotate-left text-indigo-400 mr-1"></i> Semana de Planificación:
+            </label>
+            <select id="week-select" onchange="changeWeek()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium custom-scrollbar">
+              <!-- JS Populated -->
+            </select>
+          </div>
+
+          <!-- NEE Filter Selector -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <i class="fa-solid fa-hands-holding-child text-purple-400 mr-1"></i> Perfil de Necesidad Educativa:
+            </label>
+            <select id="nee-filter" onchange="renderNEE()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-purple-500 focus:outline-none font-medium">
+              <option value="ALL">Integrado (TDAH + TDA + Dislexia)</option>
+              <option value="TDAH">Solo TDAH (Hiperactividad e Impulsividad)</option>
+              <option value="TDA">Solo TDA (Inatención Sostenida)</option>
+              <option value="DISLEXIA">Dislexia / Dificultad Lectoescritora</option>
+            </select>
+          </div>
+
+          <!-- TIC Tools Platform Selector -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+              <i class="fa-solid fa-laptop-code text-emerald-400 mr-1"></i> Ecosistema Digital TIC:
+            </label>
+            <select id="tech-filter" onchange="updateTechTips()" class="w-full bg-slate-800 border border-slate-700 text-slate-100 text-xs rounded-xl p-2.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium">
+              <option value="ALL">Ecosistema Eight (Teams + Canvas + Gamificación)</option>
+              <option value="Teams">Microsoft Teams / Class Notebook</option>
+              <option value="Canvas">Canvas LMS (Módulos & Cuestionarios)</option>
+              <option value="Gamification">Gamificación (Quizizz / Mentimeter / Kahoot)</option>
+            </select>
+          </div>
+
+          <!-- Mapeo de Contenidos del Docente -->
+          <div class="pt-3 border-t border-slate-800 space-y-2">
+            <span class="block text-xs font-bold text-slate-400 uppercase tracking-wider">
+              <i class="fa-solid fa-map-location-dot text-emerald-400 mr-1"></i> Mi Mapeo de Contenidos:
+            </span>
+            <label class="cursor-pointer w-full bg-gradient-to-r from-indigo-600/30 to-emerald-600/20 hover:from-indigo-600/40 hover:to-emerald-600/30 text-white border border-dashed border-indigo-400/60 hover:border-emerald-400 rounded-xl p-3 text-xs flex items-center justify-center space-x-2 transition-all shadow-sm">
+              <i class="fa-solid fa-cloud-arrow-up text-emerald-300 text-base"></i>
+              <span class="font-extrabold">Subir mi Mapeo de Contenidos</span>
+              <input type="file" id="excel-file-input" accept=".xlsx,.xls,.csv,.json" class="hidden" onchange="handleFileUpload(event)">
+            </label>
+            <div id="mapping-upload-status" class="hidden bg-emerald-950/50 border border-emerald-700/50 rounded-lg px-2.5 py-2 text-[10px] text-emerald-200 leading-relaxed">
+              <i class="fa-solid fa-circle-check mr-1"></i>
+              <span id="mapping-upload-status-text">Mapeo cargado.</span>
+            </div>
+            <p class="text-[9px] text-slate-500 leading-relaxed">
+              La app reconocerá automáticamente Semana, Tema, DCD/Destreza, Unidad, Trimestre, Fechas, Competencias y Períodos.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Sidebar Action Buttons -->
+        <div class="pt-4 border-t border-slate-800 space-y-2">
+          <button onclick="goToCurrentAcademicWeek()" class="w-full bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 font-semibold text-xs rounded-xl py-2.5 px-3 transition-all flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-crosshairs text-emerald-400"></i>
+            <span>Ir a la Semana Actual</span>
+          </button>
+
+          <button onclick="exportPlanJSON()" class="w-full bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-semibold text-xs rounded-xl py-2.5 px-3 transition-all flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-download text-indigo-400"></i>
+            <span>Exportar Respaldos JSON</span>
+          </button>
+        </div>
+      </aside>
+
+      <main id="tab-erca" class="tab-content flex-1 flex flex-col space-y-5 min-w-0">
+
+        <!-- Header Card de la Semana -->
+        <header class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm print-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center space-x-2 mb-1.5 flex-wrap gap-y-1">
+              <span id="badge-trimestre" class="bg-indigo-100 text-indigo-800 text-[11px] font-extrabold px-3 py-0.5 rounded-full uppercase tracking-wider border border-indigo-200">
+                PRIMER TRIMESTRE
+              </span>
+              <span id="badge-unidad" class="bg-purple-100 text-purple-800 text-[11px] font-extrabold px-3 py-0.5 rounded-full uppercase tracking-wider border border-purple-200">
+                UNIDAD 1
+              </span>
+              <span id="badge-periods" class="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-slate-200">
+                <i class="fa-regular fa-clock mr-1 text-slate-500"></i> 6 Periodos Semanales
+              </span>
+            </div>
+            <h2 id="view-week-title" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Semana 1: Diagnóstico y Bienvenida
+            </h2>
+            <p id="view-week-dates" class="text-xs font-medium text-slate-500 mt-1 flex items-center gap-1.5">
+              <i class="fa-regular fa-calendar-days text-indigo-500"></i>
+              <span>Fechas Lectivas: 07 sep - 11 sep 2026</span>
+            </p>
+          </div>
+
+          <!-- Botones de Acción Inmediata -->
+          <div class="flex items-center gap-2 no-print self-start md:self-auto flex-wrap">
+            <button onclick="resetCurrentWeek()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-all border border-slate-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-rotate-left text-slate-500"></i>
+              <span>Restablecer</span>
+            </button>
+
+            <button onclick="toggleEditMapping()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-xs rounded-xl transition-all border border-indigo-200 flex items-center gap-1.5">
+              <i class="fa-solid fa-pen-to-square text-indigo-600"></i>
+              <span id="edit-btn-text">Editar Mapeo</span>
+            </button>
+
+            <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl transition-all shadow-md shadow-indigo-100 flex items-center gap-1.5">
+              <i class="fa-solid fa-print"></i>
+              <span>Imprimir / PDF</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm print-card space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-bullseye text-indigo-600"></i>
+              <span>Mapeo Curricular Oficial & Destrezas (DCD)</span>
+            </h3>
+            <span class="text-[11px] text-slate-400 font-medium no-print">
+              <i class="fa-solid fa-circle-info text-indigo-400"></i> Estándar Ministerio de Educación Ecuador
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <!-- DCD Text Box -->
+            <div class="lg:col-span-2 space-y-2">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                Destrezas con Criterios de Desempeño (DCD):
+              </span>
+              <div id="dcd-container" class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs sm:text-sm text-slate-800 leading-relaxed font-medium whitespace-pre-line border-l-4 border-l-indigo-600">
+                <!-- JS Render -->
+              </div>
+            </div>
+
+            <!-- Competencias y Tema -->
+            <div class="space-y-3">
+              <div>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <i class="fa-solid fa-star text-amber-500 mr-1"></i> Competencias Afectadas:
+                </span>
+                <div id="comp-container" class="bg-amber-50/70 border border-amber-200 rounded-xl p-3 text-xs font-bold text-amber-900 leading-relaxed">
+                  <!-- JS Render -->
+                </div>
+              </div>
+
+              <div>
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                  <i class="fa-solid fa-lightbulb text-emerald-600 mr-1"></i> Tema Principal:
+                </span>
+                <div id="theme-container" class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3 text-xs font-black text-emerald-900">
+                  <!-- JS Render -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+          <!-- Secuencia Didáctica ERCA (2 columnas) -->
+          <div class="lg:col-span-2 space-y-5">
+            <div class="flex items-center justify-between">
+              <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-layer-group text-indigo-600"></i>
+                <span>Secuencia Didáctica Metodología ERCA</span>
+              </h3>
+              <span class="text-xs text-slate-400 no-print font-medium">Edita o genera ideas directamente</span>
+            </div>
+
+            <!-- Fase 1: Experiencia / Reflexion -->
+            <div class="bg-white rounded-2xl border border-amber-200 p-4 sm:p-5 shadow-sm print-card relative overflow-hidden space-y-3">
+              <div class="w-1.5 h-full bg-amber-500 absolute left-0 top-0"></div>
+              <div class="flex items-center justify-between pl-2">
+                <div class="flex items-center space-x-2">
+                  <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-black text-xs">1</span>
+                  <h4 class="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-wide">1. Experiencia y Reflexión (Anticipación)</h4>
+                </div>
+                <span class="bg-amber-50 text-amber-700 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-amber-200">
+                  <i class="fa-solid fa-bolt mr-1 text-amber-500"></i> Enganche (10-15 min)
+                </span>
+              </div>
+
+              <textarea id="erca-act" oninput="saveCurrentState()" rows="4" class="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl p-3 text-xs sm:text-sm text-slate-700 leading-relaxed focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none transition-all resize-y" placeholder="Actividades de enganche, preguntas problematizadoras, lluvia de ideas o dinámicas iniciales..."></textarea>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 pl-2 pt-1 border-t border-slate-100">
+                <div id="tech-badge-act" class="text-[11px] font-semibold text-amber-900 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 flex items-center gap-1.5">
+                  <!-- JS Badge -->
+                </div>
+                <button onclick="requestAIGeneration('act')" class="text-xs text-amber-700 hover:text-amber-900 font-bold flex items-center gap-1 no-print bg-amber-100/60 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-200 transition-all">
+                  <i class="fa-solid fa-wand-magic-sparkles text-amber-600"></i>
+                  <span>Generar con IA Gemini</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Fase 2: Conceptualización -->
+            <div class="bg-white rounded-2xl border border-blue-200 p-4 sm:p-5 shadow-sm print-card relative overflow-hidden space-y-3">
+              <div class="w-1.5 h-full bg-blue-500 absolute left-0 top-0"></div>
+              <div class="flex items-center justify-between pl-2">
+                <div class="flex items-center space-x-2">
+                  <span class="w-6 h-6 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center font-black text-xs">2</span>
+                  <h4 class="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-wide">2. Conceptualización (Construcción)</h4>
+                </div>
+                <span class="bg-blue-50 text-blue-700 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-blue-200">
+                  <i class="fa-solid fa-cubes mr-1 text-blue-500"></i> Desarrollo Guiado (20-25 min)
+                </span>
+              </div>
+
+              <textarea id="erca-cons" oninput="saveCurrentState()" rows="5" class="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl p-3 text-xs sm:text-sm text-slate-700 leading-relaxed focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all resize-y" placeholder="Lectura analítica, procesamiento de la información, modelado del docente o trabajo colaborativo..."></textarea>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 pl-2 pt-1 border-t border-slate-100">
+                <div id="tech-badge-cons" class="text-[11px] font-semibold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 flex items-center gap-1.5">
+                  <!-- JS Badge -->
+                </div>
+                <button onclick="requestAIGeneration('cons')" class="text-xs text-blue-700 hover:text-blue-900 font-bold flex items-center gap-1 no-print bg-blue-100/60 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition-all">
+                  <i class="fa-solid fa-wand-magic-sparkles text-blue-600"></i>
+                  <span>Generar con IA Gemini</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Fase 3: Aplicación / Consolidación -->
+            <div class="bg-white rounded-2xl border border-emerald-200 p-4 sm:p-5 shadow-sm print-card relative overflow-hidden space-y-3">
+              <div class="w-1.5 h-full bg-emerald-500 absolute left-0 top-0"></div>
+              <div class="flex items-center justify-between pl-2">
+                <div class="flex items-center space-x-2">
+                  <span class="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs">3</span>
+                  <h4 class="font-extrabold text-slate-800 text-xs sm:text-sm uppercase tracking-wide">3. Aplicación y Transferencia (Consolidación)</h4>
+                </div>
+                <span class="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-emerald-200">
+                  <i class="fa-solid fa-circle-check mr-1 text-emerald-500"></i> Producto / Cierre (10 min)
+                </span>
+              </div>
+
+              <textarea id="erca-consol" oninput="saveCurrentState()" rows="4" class="w-full bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl p-3 text-xs sm:text-sm text-slate-700 leading-relaxed focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 outline-none transition-all resize-y" placeholder="Actividades de práctica autónoma, resolución de problemas, cuestionario gamificado o producto evaluativo..."></textarea>
+
+              <div class="flex flex-wrap items-center justify-between gap-2 pl-2 pt-1 border-t border-slate-100">
+                <div id="tech-badge-consol" class="text-[11px] font-semibold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1.5">
+                  <!-- JS Badge -->
+                </div>
+                <button onclick="requestAIGeneration('consol')" class="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 no-print bg-emerald-100/60 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-all">
+                  <i class="fa-solid fa-wand-magic-sparkles text-emerald-600"></i>
+                  <span>Generar con IA Gemini</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="space-y-5">
+            
+            <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-5 text-white shadow-xl space-y-4 print-card border border-indigo-900/60">
+              <div class="flex items-center justify-between border-b border-indigo-800/60 pb-3">
+                <h3 class="font-extrabold text-sm flex items-center gap-2">
+                  <i class="fa-solid fa-brain text-purple-400"></i>
+                  <span>Adaptaciones NEE / DUA</span>
+                </h3>
+                <span id="nee-profile-tag" class="bg-purple-500/30 text-purple-200 text-[10px] uppercase font-black px-2 py-0.5 rounded border border-purple-400/30">
+                  Integrado
+                </span>
+              </div>
+
+              <p class="text-xs text-slate-300 leading-relaxed">
+                Estrategias de mediación sugeridas según el perfil seleccionado:
+              </p>
+
+              <!-- Listado Dinámico de Estrategias NEE -->
+              <div id="nee-strategies-container" class="space-y-2.5">
+                <!-- JS Render -->
+              </div>
+
+              <!-- Anotaciones Específicas por Estudiante -->
+              <div class="pt-2 border-t border-indigo-800/60">
+                <label class="block text-xs font-bold text-purple-300 uppercase tracking-wider mb-2">
+                  <i class="fa-solid fa-user-pen mr-1"></i> Observaciones para Estudiantes NEE:
+                </label>
+                <textarea id="nee-custom-notes" oninput="saveCurrentState()" rows="3" class="w-full bg-slate-950/80 border border-indigo-800 text-purple-100 placeholder-slate-500 text-xs rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all" placeholder="Ejemplo: Mateo S. requiere 30% más tiempo en pruebas digitales; Sofía P. sustentará de forma oral..."></textarea>
+              </div>
+            </div>
+
+            <!-- Estándares de Evaluación Eight Academy -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3 no-print">
+              <h4 class="font-extrabold text-slate-800 text-xs uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-indigo-600"></i>
+                <span>Estándares Eight Academy</span>
+              </h4>
+              <ul class="text-xs text-slate-600 space-y-2 list-disc list-inside leading-relaxed">
+                <li><strong>Formativo:</strong> Toda actividad ERCA cuenta con retroalimentación en Canvas/Teams.</li>
+                <li><strong>Inclusivo:</strong> Uso de herramientas accesibles (Lector Inmersivo de Microsoft).</li>
+                <li><strong>Criterios DCD:</strong> Evaluación alineada a las competencias comunicacionales y digitales.</li>
+              </ul>
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+      <main id="tab-mapeo" class="tab-content flex-1 hidden flex-col space-y-5 min-w-0">
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+            <div>
+              <h2 class="text-xl font-black text-slate-900 tracking-tight">
+                Mapeo Curricular Anual (40 Semanas - Año Lectivo 2026-2027)
+              </h2>
+              <p class="text-xs font-medium text-slate-500 mt-1">
+                Visualización general de Destrezas con Criterios de Desempeño (DCD) organizadas por semanas y trimestres.
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="text" id="mapeo-search" oninput="filterMapeoTable()" placeholder="Buscar DCD o tema..." class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:ring-2 focus:ring-indigo-500 outline-none w-48 sm:w-64">
+            </div>
+          </div>
+
+          <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr class="bg-slate-900 text-white uppercase text-[10px] tracking-wider">
+                  <th class="p-3 font-extrabold border-b border-slate-800">Sem.</th>
+                  <th class="p-3 font-extrabold border-b border-slate-800">Trimestre / Unidad</th>
+                  <th class="p-3 font-extrabold border-b border-slate-800">Fechas Lectivas</th>
+                  <th class="p-3 font-extrabold border-b border-slate-800">Tema Principal</th>
+                  <th class="p-3 font-extrabold border-b border-slate-800 min-w-[280px]">Destreza con Criterio de Desempeño (DCD)</th>
+                  <th class="p-3 font-extrabold border-b border-slate-800">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="mapeo-table-body" class="divide-y divide-slate-200 bg-white">
+                <!-- JS Render -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <main id="tab-ia" class="tab-content flex-1 hidden flex-col space-y-5 min-w-0">
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
+            <div class="w-12 h-12 bg-purple-100 text-purple-700 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-black text-slate-900 tracking-tight">Asistente Pedagógico IA Gemini</h2>
+              <p class="text-xs font-medium text-slate-500">
+                Genera secuencias didácticas completas, rúbricas de evaluación o adaptaciones NEE en segundos.
+              </p>
+            </div>
+          </div>
+
+          <!-- Prompt Box -->
+          <div class="space-y-3">
+            <label class="block text-xs font-extrabold text-slate-700 uppercase tracking-wider">
+              Instrucción para el Asistente IA:
+            </label>
+            <div class="relative">
+              <textarea id="ai-prompt-input" rows="4" class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs sm:text-sm text-slate-800 focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none transition-all" placeholder="Ejemplo: Diseña una secuencia ERCA completa de 3 periodos para enseñar la DCD de cuento fantástico en 4to EGB, incluyendo 1 juego gamificado en Quizizz y 1 adaptación para TDAH..."></textarea>
+            </div>
+
+            <!-- Fast Prompt Suggestions -->
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <span class="text-[11px] font-bold text-slate-400">Sugerencias rápidas:</span>
+              <button onclick="setPromptTemplate('erca')" class="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold text-[11px] rounded-lg border border-purple-200 transition-all">
+                ✨ Plan ERCA Completo
+              </button>
+              <button onclick="setPromptTemplate('rubric')" class="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] rounded-lg border border-indigo-200 transition-all">
+                📊 Rúbrica de Evaluación
+              </button>
+              <button onclick="setPromptTemplate('nee')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-[11px] rounded-lg border border-emerald-200 transition-all">
+                🧠 Plan de Apoyo DUA / NEE
+              </button>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button onclick="executeGeminiCall()" id="btn-generate-ai" class="px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-purple-200 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Generar Propuesta Pedagógica</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Loading Indicator -->
+          <div id="ai-loading" class="hidden py-8 text-center space-y-3">
+            <div class="inline-block w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-xs font-bold text-purple-700 animate-pulse">Conectando con Gemini IA y procesando currículo oficial...</p>
+          </div>
+
+          <!-- Response Output Box -->
+          <div id="ai-response-container" class="hidden space-y-3 pt-4 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                <i class="fa-solid fa-robot text-purple-600"></i> Propuesta Generada por Gemini:
+              </span>
+              <button onclick="copyAIResponse()" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-lg border border-slate-200 transition-all flex items-center gap-1">
+                <i class="fa-solid fa-copy"></i> Copiar Texto
+              </button>
+            </div>
+            <div id="ai-response-text" class="bg-slate-900 text-slate-100 p-5 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-mono border border-slate-800">
+              <!-- AI Text Result -->
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <main id="tab-nee" class="tab-content flex-1 hidden flex-col space-y-5 min-w-0">
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-5">
+          <div class="flex items-center space-x-3 border-b border-slate-100 pb-4">
+            <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner">
+              <i class="fa-solid fa-hands-holding-child"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-black text-slate-900 tracking-tight">Catálogo de Estrategias NEE & DUA</h2>
+              <p class="text-xs font-medium text-slate-500">
+                Guía oficial de adaptación metodológica de Grado 1 y Grado 2 para el aula de Eight Academy.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            
+            <!-- Card TDAH -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+              <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+                <i class="fa-solid fa-bolt text-amber-500 text-lg"></i>
+                <h3 class="font-extrabold text-sm text-slate-800">TDAH (Hiperactividad e Impulsividad)</h3>
+              </div>
+              <ul class="text-xs text-slate-600 space-y-2 list-disc list-inside leading-relaxed">
+                <li>Fragmentar tareas complejas en pasos de no más de 10 minutos.</li>
+                <li>Implementar pausas activas motoras entre la fase de Conceptualización y Aplicación.</li>
+                <li>Uso de temporizadores visuales en la pantalla compartida de Microsoft Teams.</li>
+                <li>Ubicación estratégica en el aula lejos de factores de distracción directa.</li>
+              </ul>
+            </div>
+
+            <!-- Card TDA -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+              <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+                <i class="fa-solid fa-eye text-blue-500 text-lg"></i>
+                <h3 class="font-extrabold text-sm text-slate-800">TDA (Inatención y Atención Sostenida)</h3>
+              </div>
+              <ul class="text-xs text-slate-600 space-y-2 list-disc list-inside leading-relaxed">
+                <li>Proporcionar guías con apoyos pictográficos o resúmenes organizados en esquemas.</li>
+                <li>Acompañar las consignas escritas en Canvas con audios cortos explicativos.</li>
+                <li>Permitir el uso de sintetizadores de voz o Lector Inmersivo.</li>
+                <li>Establecer contacto visual directo antes de dar una instrucción clave.</li>
+              </ul>
+            </div>
+
+            <!-- Card Dislexia -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+              <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+                <i class="fa-solid fa-spell-check text-purple-500 text-lg"></i>
+                <h3 class="font-extrabold text-sm text-slate-800">Dislexia / Dificultad Lectoescritora</h3>
+              </div>
+              <ul class="text-xs text-slate-600 space-y-2 list-disc list-inside leading-relaxed">
+                <li>Priorizar la evaluación oral o mediante videos cortos sobre pruebas escritas extensas.</li>
+                <li>Adaptar tipografías a fuentes de alta legibilidad (Inter, Arial, OpenDyslexic).</li>
+                <li>No penalizar la ortografía en respuestas espontáneas de desarrollo.</li>
+                <li>Otorgar un 30% a 50% de tiempo adicional en evaluaciones sumativas.</li>
+              </ul>
+            </div>
+
+            <!-- Card Altas Capacidades -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-3">
+              <div class="flex items-center space-x-2 border-b border-slate-200 pb-2">
+                <i class="fa-solid fa-rocket text-emerald-500 text-lg"></i>
+                <h3 class="font-extrabold text-sm text-slate-800">Altas Capacidades / Enriquecimiento</h3>
+              </div>
+              <ul class="text-xs text-slate-600 space-y-2 list-disc list-inside leading-relaxed">
+                <li>Asignar proyectos de investigación o creación de contenido multimedia complementario.</li>
+                <li>Promover el rol de monitor tutor de pares en el trabajo en equipo.</li>
+                <li>Planteamiento de dilemas éticos o retos con mayor nivel de abstracción.</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </main>
+
+    </div>
+
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 mt-8 py-5 text-center text-xs text-slate-500 no-print">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <p>© 2026 - 2027 Unidad Educativa Particular Eight Academy - Coordinación Pedagógica</p>
+      <p class="text-slate-400 font-medium">Sistema Adaptativo de Planificación DCD, ERCA & Gemini IA v3.0</p>
+    </div>
+  </footer>
+
+  <script>
+    let curriculumDatabase = [
+      {
+        sem: 1,
+        subject: "Lengua",
+        trimestre: "PRIMER TRIMESTRE",
+        unidad: "U1",
+        fechas: "07 - 11 sep 2026",
+        per: "6",
+        tema: "Diagnóstico y Bienvenida",
+        dcd: "Evaluación diagnóstica integral de destrezas de lectura, escritura y expresión oral del subnivel anterior.",
+        comp: "Competencias comunicacionales / Socioemocionales",
+        act: "Juego interactivo 'El micrófono preguntón' en Microsoft Teams para romper el hielo. Levantamiento de conocimientos previos mediante encuesta en Mentimeter.",
+        cons: "Lectura individual guiada de un texto narrativo breve. Identificación visual de elementos del cuento utilizando la pizarra digital de Canva.",
+        consol: "Cuestionario diagnóstico gamificado en Quizizz (10 preguntas visuales) para medir comprensión lectora."
+      },
+      {
+        sem: 2,
+        subject: "Lengua",
+        trimestre: "PRIMER TRIMESTRE",
+        unidad: "U1",
+        fechas: "14 - 18 sep 2026",
+        per: "6",
+        tema: "Nivelación Pedagógica",
+        dcd: "Reforzamiento de conciencia fonológica, semántica y sintáctica en la construcción de párrafos sencillos.",
+        comp: "Competencias comunicacionales",
+        act: "Presentación de tarjetas de imágenes animadas en Genially para ordenar secuencias lógicas de historias de la comunidad.",
+        cons: "Construcción colectiva de oraciones con sujeto y predicado en un muro digital interactivo de Padlet.",
+        consol: "Ticket de salida en Canvas LMS ordenando correctamente 3 oraciones desordenadas."
+      },
+      {
+        sem: 3,
+        subject: "Lengua",
+        trimestre: "PRIMER TRIMESTRE",
+        unidad: "U1",
+        fechas: "21 - 25 sep 2026",
+        per: "6",
+        tema: "El Cuento Fantástico",
+        dcd: "LL.2.5.1. Escuchar y leer diversos géneros literarios (privilegiando textos ecuatorianos, populares y de autor) para potenciar la imaginación, la curiosidad y la memoria.\n\nLL.2.5.2. Escuchar y leer diversos géneros literarios para desarrollar preferencias en el gusto literario.",
+        comp: "Competencias comunicacionales / Digitales",
+        act: "Escucha activa de un audiolibro fantástico ecuatoriano en Padlet. Lluvia de ideas mediante encuesta rápida en Mentimeter sobre elementos 'fantásticos'.",
+        cons: "Identificación de los momentos del cuento (inicio, nudo y desenlace) usando una plantilla interactiva en Canva compartida en Teams.",
+        consol: "Creación de una portada digital del cuento leído cambiando el personaje principal con apoyo de herramientas gráficas."
+      },
+      {
+        sem: 4,
+        subject: "Lengua",
+        trimestre: "PRIMER TRIMESTRE",
+        unidad: "U1",
+        fechas: "28 sep - 02 oct 2026",
+        per: "6",
+        tema: "El Itinerario y la Secuencia Temporal",
+        dcd: "LL.2.4.3. Redactar, en situaciones comunicativas que lo requieran, narraciones de experiencias personales, hechos cotidianos u otros sucesos de interés, ordenándolos cronológicamente con conectores temporales.",
+        comp: "Competencias comunicacionales",
+        act: "Observación del mapa de un itinerario de viaje fantástico proyectado en la pantalla interactiva.",
+        cons: "Taller de escritura guiada en Microsoft Word/Canvas utilizando conectores temporales (primero, luego, más tarde, finalmente).",
+        consol: "Juego de asociación en Educaplay completando conectores lógicos faltantes en un texto narrativo."
+      },
+      {
+        sem: 5,
+        subject: "Lengua",
+        trimestre: "PRIMER TRIMESTRE",
+        unidad: "U1",
+        fechas: "05 - 09 oct 2026",
+        per: "6",
+        tema: "La Opinión Personal en Textos Narrativos",
+        dcd: "LL.2.2.1. Compartir de manera espontánea sus ideas, experiencias y necesidades en situaciones informales de la vida cotidiana.",
+        comp: "Competencias comunicacionales / Socioemocionales",
+        act: "Debate relámpago con la función de levantamiento de mano en Teams: '¿Qué superpoder prefieres y por qué?'.",
+        cons: "Modelado del párrafo de opinión: Estructura de Idea Principal + Razón + Ejemplo práctico en la pizarra digital.",
+        consol: "Grabación de un audio corto (30 seg) en la asignación de Canvas expresando una opinión fundamentada."
+      }
+    ];
+
+    const neeDatabase = {
+      TDAH: [
+        { titulo: "Pausas Activas Programadas", icono: "fa-person-running", desc: "Dividir la sesión de 40 min en 2 bloques de 15 min con 1 pausa activa motora. Usar temporizador visual." },
+        { titulo: "Fragmentación de Entregables", icono: "fa-list-check", desc: "Entregar 1 instrucción a la vez en Canvas/Teams para evitar sobrecarga de estímulos." },
+        { titulo: "Rol de Liderazgo Operativo", icono: "fa-star", desc: "Asignar el rol de 'Gestor de Tiempo' o 'Moderador de Chat' para canalizar el movimiento." }
+      ],
+      TDA: [
+        { titulo: "Guías de Lectura Visuales", icono: "fa-eye", desc: "Proporcionar resaltador digital o máscara de lectura en PDF para mantener el foco." },
+        { titulo: "Organizadores Pre-llenados", icono: "fa-sitemap", desc: "Entregar plantillas de notas con el 50% de la estructura completa para guiarse." },
+        { titulo: "Instrucciones Multicanal", icono: "fa-volume-high", desc: "Acompañar indicaciones escritas con notas de voz en Canvas o lectura en voz alta." }
+      ],
+      DISLEXIA: [
+        { titulo: "Sustitución de Lectura Extensa", icono: "fa-headphones", desc: "Permitir la escucha de audiotextos en lugar de lectura de textos muy extensos." },
+        { titulo: "Evaluación Oral Adaptada", icono: "fa-microphone", desc: "Sustituir la respuesta escrita por grabación de voz en las fases de aplicación." }
+      ]
+    };
+
+    let currentWeekIndex = 0;
+    let editingMappingMode = false;
+
+    window.onload = function() {
+      fillRemainingWeeks();
+      loadFromLocalStorage();
+      renderWeekDropdown();
+      detectAndLoadAcademicWeek();
+      renderMapeoTable();
+      restoreMappingUploadStatus();
+    };
+
+    function restoreMappingUploadStatus() {
+      try {
+        const fileName = localStorage.getItem('eight_mapping_file_2026');
+        if (!fileName) return;
+        const status = document.getElementById('mapping-upload-status');
+        const statusText = document.getElementById('mapping-upload-status-text');
+        if (status && statusText) {
+          statusText.textContent = `${fileName} · Mapeo activo para este dispositivo`;
+          status.classList.remove('hidden');
+        }
+      } catch(e) {}
+    }
+
+    function fillRemainingWeeks() {
+      const existing = curriculumDatabase.length;
+      if (existing < 40) {
+        for (let w = existing + 1; w <= 40; w++) {
+          let tri = "TERCER TRIMESTRE";
+          if (w <= 13) tri = "PRIMER TRIMESTRE";
+          else if (w <= 27) tri = "SEGUNDO TRIMESTRE";
+
+          curriculumDatabase.push({
+            sem: w,
+            subject: "Lengua",
+            trimestre: tri,
+            unidad: `U${Math.ceil(w / 7)}`,
+            fechas: `Semana ${w} (2026-2027)`,
+            per: "6",
+            tema: `Desarrollo Curricular DCD - Semana ${w}`,
+            dcd: `LL.2.3.3. Ampliar la comprensión de un texto mediante la identificación de los significados de las palabras.\n\nLL.2.4.7. Aplicar progresivamente las reglas de escritura mediante la reflexión fonológica.`,
+            comp: "Competencias Comunicacionales / Digitales",
+            act: `Activación mediante dinamizador digital en Teams/Mentimeter para la semana ${w}.`,
+            cons: `Desarrollo de conceptos utilizando organizador gráfico interactivo en Class Notebook / Canva.`,
+            consol: `Cuestionario de consolidación formativa en Quizizz / Canvas LMS.`
+          });
+        }
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-sm');
+        btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById(`btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+        activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-sm');
+      }
+    }
+
+    function renderWeekDropdown() {
+      const select = document.getElementById('week-select');
+      select.innerHTML = '';
+      curriculumDatabase.forEach((item, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = `Sem ${item.sem}: ${item.tema.substring(0, 24)}... (${item.fechas})`;
+        select.appendChild(option);
+      });
+      select.value = currentWeekIndex;
+    }
+
+    function changeWeek() {
+      const select = document.getElementById('week-select');
+      currentWeekIndex = parseInt(select.value, 10);
+      renderCurrentWeekData();
+    }
+
+    function changeSubject() {
+      const subject = document.getElementById('select-subject').value;
+      showModal("Asignatura Actualizada", `Se ha activado el mapeo pedagógico para "${subject} - 4to EGB".`);
+      renderCurrentWeekData();
+    }
+
+    function renderCurrentWeekData() {
+      const data = curriculumDatabase[currentWeekIndex];
+      if (!data) return;
+
+      document.getElementById('badge-trimestre').textContent = data.trimestre || "TRIMESTRE";
+      document.getElementById('badge-unidad').textContent = data.unidad || "UNIDAD";
+      document.getElementById('badge-periods').textContent = `${data.per || 6} Periodos Semanales`;
+
+      document.getElementById('view-week-title').textContent = `Semana ${data.sem}: ${data.tema}`;
+      document.getElementById('view-week-dates').innerHTML = `<i class="fa-regular fa-calendar-days text-indigo-500"></i> Fechas Lectivas: ${data.fechas}`;
+
+      const dcdBox = document.getElementById('dcd-container');
+      const compBox = document.getElementById('comp-container');
+      const themeBox = document.getElementById('theme-container');
+
+      if (!editingMappingMode) {
+        dcdBox.innerHTML = data.dcd ? data.dcd : "<em class='text-slate-400'>No se registran DCDs específicas.</em>";
+        compBox.innerHTML = data.comp ? data.comp : "Competencias Generales";
+        themeBox.innerHTML = data.tema;
+      } else {
+        dcdBox.innerHTML = `<textarea id="edit-dcd-input" rows="4" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs text-slate-800">${data.dcd}</textarea>`;
+        compBox.innerHTML = `<input type="text" id="edit-comp-input" value="${data.comp}" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 text-xs">`;
+        themeBox.innerHTML = `<input type="text" id="edit-theme-input" value="${data.tema}" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 text-xs font-bold">`;
+      }
+
+      document.getElementById('erca-act').value = data.act || "";
+      document.getElementById('erca-cons').value = data.cons || "";
+      document.getElementById('erca-consol').value = data.consol || "";
+
+      document.getElementById('nee-custom-notes').value = data.neeNotes || "";
+
+      updateTechTips();
+      renderNEE();
+    }
+
+    function renderNEE() {
+      const filter = document.getElementById('nee-filter').value;
+      const container = document.getElementById('nee-strategies-container');
+      const profileTag = document.getElementById('nee-profile-tag');
+      container.innerHTML = '';
+
+      let list = [];
+      if (filter === 'ALL' || filter === 'TDAH') {
+        list = list.concat(neeDatabase.TDAH.map(item => ({...item, tag: 'TDAH'})));
+      }
+      if (filter === 'ALL' || filter === 'TDA') {
+        list = list.concat(neeDatabase.TDA.map(item => ({...item, tag: 'TDA'})));
+      }
+      if (filter === 'ALL' || filter === 'DISLEXIA') {
+        list = list.concat(neeDatabase.DISLEXIA.map(item => ({...item, tag: 'DISLEXIA'})));
+      }
+
+      profileTag.textContent = filter === 'ALL' ? 'Integrado' : filter;
+
+      list.forEach(item => {
+        const card = document.createElement('div');
+        card.className = "bg-slate-950/60 border border-indigo-900/60 rounded-xl p-3 space-y-1";
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-purple-200 flex items-center gap-1.5">
+              <i class="fa-solid ${item.icono} text-purple-400"></i>
+              <span>${item.titulo}</span>
+            </span>
+            <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+              ${item.tag}
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-relaxed">${item.desc}</p>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function updateTechTips() {
+      const tech = document.getElementById('tech-filter').value;
+      
+      const badgeAct = document.getElementById('tech-badge-act');
+      const badgeCons = document.getElementById('tech-badge-cons');
+      const badgeConsol = document.getElementById('tech-badge-consol');
+
+      if (tech === 'Teams') {
+        badgeAct.innerHTML = `<i class="fa-solid fa-users text-indigo-600"></i><span>Teams: Encuesta de inicio en Canal General</span>`;
+        badgeCons.innerHTML = `<i class="fa-solid fa-book-open text-indigo-600"></i><span>Teams: Class Notebook (Bloc de Notas)</span>`;
+        badgeConsol.innerHTML = `<i class="fa-solid fa-square-check text-indigo-600"></i><span>Teams: Tarea con Rúbrica Cualitativa</span>`;
+      } else if (tech === 'Canvas') {
+        badgeAct.innerHTML = `<i class="fa-solid fa-bullhorn text-red-600"></i><span>Canvas LMS: Foro 'Saberes Previos'</span>`;
+        badgeCons.innerHTML = `<i class="fa-solid fa-file-powerpoint text-red-600"></i><span>Canvas LMS: Módulo Interactivo con audio</span>`;
+        badgeConsol.innerHTML = `<i class="fa-solid fa-graduation-cap text-red-600"></i><span>Canvas LMS: Cuestionario corto con feedback</span>`;
+      } else if (tech === 'Gamification') {
+        badgeAct.innerHTML = `<i class="fa-solid fa-gamepad text-emerald-600"></i><span>Mentimeter: Nube de palabras de la semana</span>`;
+        badgeCons.innerHTML = `<i class="fa-solid fa-puzzle-piece text-emerald-600"></i><span>Educaplay: Crucigrama o mapa interactivo</span>`;
+        badgeConsol.innerHTML = `<i class="fa-solid fa-trophy text-emerald-600"></i><span>Quizizz: Evaluación a ritmo del estudiante</span>`;
+      } else {
+        badgeAct.innerHTML = `<i class="fa-solid fa-laptop text-amber-600"></i><span>Ecosistema Eight: Mentimeter / Teams</span>`;
+        badgeCons.innerHTML = `<i class="fa-solid fa-display text-blue-600"></i><span>Ecosistema Eight: Genially / Class Notebook</span>`;
+        badgeConsol.innerHTML = `<i class="fa-solid fa-chart-line text-emerald-600"></i><span>Ecosistema Eight: Quizizz / Canvas LMS</span>`;
+      }
+    }
+
+    function saveCurrentState() {
+      const data = curriculumDatabase[currentWeekIndex];
+      if (!data) return;
+
+      data.act = document.getElementById('erca-act').value;
+      data.cons = document.getElementById('erca-cons').value;
+      data.consol = document.getElementById('erca-consol').value;
+      data.neeNotes = document.getElementById('nee-custom-notes').value;
+
+      if (editingMappingMode) {
+        const editDcd = document.getElementById('edit-dcd-input');
+        const editComp = document.getElementById('edit-comp-input');
+        const editTheme = document.getElementById('edit-theme-input');
+
+        if (editDcd) data.dcd = editDcd.value;
+        if (editComp) data.comp = editComp.value;
+        if (editTheme) data.tema = editTheme.value;
+      }
+
+      try {
+        localStorage.setItem('eight_curriculum_plan_2026', JSON.stringify(curriculumDatabase));
+        showSavedIndicator();
+      } catch(e){}
+    }
+
+    function showSavedIndicator() {
+      const ind = document.getElementById('saved-indicator');
+      if (ind) {
+        ind.classList.remove('hidden');
+        setTimeout(() => ind.classList.add('hidden'), 2000);
+      }
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const saved = localStorage.getItem('eight_curriculum_plan_2026');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            curriculumDatabase = parsed;
+          }
+        }
+      } catch(e){}
+    }
+
+    function resetCurrentWeek() {
+      localStorage.removeItem('eight_curriculum_plan_2026');
+      localStorage.removeItem('eight_mapping_file_2026');
+      location.reload();
+    }
+
+    function toggleEditMapping() {
+      editingMappingMode = !editingMappingMode;
+      const btnText = document.getElementById('edit-btn-text');
+      if (editingMappingMode) {
+        btnText.textContent = "Guardar Cambios";
+      } else {
+        saveCurrentState();
+        btnText.textContent = "Editar Mapeo";
+        renderWeekDropdown();
+        renderMapeoTable();
+        showModal("Mapeo Actualizado", "Los cambios en la DCD han sido guardados correctamente.");
+      }
+      renderCurrentWeekData();
+    }
+
+    function renderMapeoTable() {
+      const tbody = document.getElementById('mapeo-table-body');
+      tbody.innerHTML = '';
+
+      curriculumDatabase.forEach((item, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition-colors";
+        tr.innerHTML = `
+          <td class="p-3 font-extrabold text-indigo-600">${item.sem}</td>
+          <td class="p-3">
+            <span class="font-bold text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 block w-max">${item.trimestre}</span>
+            <span class="text-[10px] font-semibold text-purple-600">${item.unidad}</span>
+          </td>
+          <td class="p-3 font-medium text-slate-500">${item.fechas}</td>
+          <td class="p-3 font-bold text-slate-800">${item.tema}</td>
+          <td class="p-3 font-medium text-slate-600 whitespace-pre-line">${item.dcd}</td>
+          <td class="p-3">
+            <button onclick="selectWeekFromTable(${idx})" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg border border-indigo-200 transition-all text-[11px]">
+              Ver Plan
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterMapeoTable() {
+      const query = document.getElementById('mapeo-search').value.toLowerCase();
+      const rows = document.querySelectorAll('#mapeo-table-body tr');
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(query) ? '' : 'none';
+      });
+    }
+
+    function selectWeekFromTable(idx) {
+      currentWeekIndex = idx;
+      document.getElementById('week-select').value = idx;
+      renderCurrentWeekData();
+      switchTab('tab-erca');
+    }
+
+    async function executeGeminiCall() {
+      const promptInput = document.getElementById('ai-prompt-input').value.trim();
+      if (!promptInput) {
+        showModal("Campo Vacío", "Por favor ingresa una instrucción o selecciona una sugerencia rápida.");
+        return;
+      }
+
+      const loading = document.getElementById('ai-loading');
+      const responseBox = document.getElementById('ai-response-container');
+      const responseText = document.getElementById('ai-response-text');
+
+      loading.classList.remove('hidden');
+      responseBox.classList.add('hidden');
+
+      const systemPrompt = "Eres un Asistente Pedagógico Experto del modelo Eight Academy en Ecuador. Generas secuencias didácticas basadas estrictamente en la metodología ERCA (Experiencia, Reflexión, Conceptualización, Aplicación) y alineadas con el currículo del Ministerio de Educación de Ecuador. Responde con lenguaje profesional, claro, estructurado y listo para ser utilizado por docentes.";
+      
+      const currentData = curriculumDatabase[currentWeekIndex];
+      const fullQuery = `Contexto Actual:\nAsignatura: ${currentData.subject}\nSemana: ${currentData.sem}\nTema: ${currentData.tema}\nDCD: ${currentData.dcd}\n\nInstrucción del Docente: ${promptInput}`;
+
+      const apiKey = "";
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: fullQuery }] }],
+        systemInstruction: { parts: [{ text: systemPrompt }] }
+      };
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (candidateText) {
+          responseText.textContent = candidateText;
+          responseBox.classList.remove('hidden');
+        } else {
+          responseText.textContent = "No se pudo obtener una respuesta estructurada. Intenta nuevamente.";
+          responseBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        responseText.textContent = "Error de conexión al servidor de Inteligencia Artificial Gemini. Revisa la conectividad a internet.";
+        responseBox.classList.remove('hidden');
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+
+    function setPromptTemplate(type) {
+      const data = curriculumDatabase[currentWeekIndex];
+      const input = document.getElementById('ai-prompt-input');
+
+      if (type === 'erca') {
+        input.value = `Diseña una secuencia ERCA detallada para el tema "${data.tema}" alineada a la DCD: ${data.dcd}. Incluye tiempos para cada fase y 1 herramienta tecnológica especifica (Teams/Canvas/Quizizz).`;
+      } else if (type === 'rubric') {
+        input.value = `Crea una rúbrica analítica de 4 niveles (Excelente, Bueno, En Proceso, Iniciado) para evaluar el producto de la semana "${data.tema}".`;
+      } else if (type === 'nee') {
+        input.value = `Propón 3 adaptaciones metodológicas de Grado 2 (DUA) para un estudiante con TDAH en la actividad de conceptualización del tema "${data.tema}".`;
+      }
+    }
+
+    function requestAIGeneration(phase) {
+      switchTab('tab-ia');
+      const data = curriculumDatabase[currentWeekIndex];
+      const input = document.getElementById('ai-prompt-input');
+
+      if (phase === 'act') {
+        input.value = `Sugiere 2 actividades innovadoras de Experiencia y Reflexión (Enganche de 10 min) para iniciar la clase del tema "${data.tema}" con uso de Mentimeter o Teams.`;
+      } else if (phase === 'cons') {
+        input.value = `Diseña la fase de Conceptualización (Construcción del Conocimiento) para el tema "${data.tema}", utilizando un organizador gráfico en Class Notebook / Canva.`;
+      } else if (phase === 'consol') {
+        input.value = `Sugiere una actividad de Aplicación/Consolidación evaluativa para el tema "${data.tema}", que incluya un cuestionario o reto gamificado en Quizizz.`;
+      }
+
+      executeGeminiCall();
+    }
+
+    function detectAndLoadAcademicWeek() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const banner = document.getElementById('current-week-banner');
+      const academicStart = new Date(2026, 8, 7); // 07 Sep 2026
+
+      if (year === 2026 || year === 2027) {
+        const diffTime = Math.abs(today - academicStart);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        let estimatedWeek = Math.ceil(diffDays / 7);
+        if (estimatedWeek < 1) estimatedWeek = 1;
+        if (estimatedWeek > 40) estimatedWeek = 40;
+
+        currentWeekIndex = estimatedWeek - 1;
+        banner.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400 mr-1"></i> Sincronizado: Semana ${estimatedWeek} lectiva (${today.toLocaleDateString()})`;
+      } else {
+        currentWeekIndex = 0;
+        banner.innerHTML = `<i class="fa-solid fa-circle-info text-amber-300 mr-1"></i> Modo Simulación Lectiva 2026-2027 | Semana activa: 1`;
+      }
+
+      document.getElementById('week-select').value = currentWeekIndex;
+      renderCurrentWeekData();
+    }
+
+    function goToCurrentAcademicWeek() {
+      detectAndLoadAcademicWeek();
+      showModal("Sincronización de Fecha", "Te has desplazado a la semana correspondiente según el calendario lectivo 2026-2027.");
+    }
+
+    function normalizeHeader(value) {
+      return String(value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\n/g, ' ')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim();
+    }
+
+    function findHeaderIndex(headers, aliases) {
+      const normalized = headers.map(normalizeHeader);
+      for (const alias of aliases) {
+        const a = normalizeHeader(alias);
+        let idx = normalized.findIndex(h => h === a);
+        if (idx !== -1) return idx;
+        idx = normalized.findIndex(h => h.includes(a) || a.includes(h));
+        if (idx !== -1) return idx;
+      }
+      return -1;
+    }
+
+    function detectHeaderRow(rows) {
+      const headerWords = ['semana', 'tema', 'dcd', 'destreza', 'unidad', 'trimestre', 'fecha', 'competencia'];
+      let bestIndex = 0;
+      let bestScore = -1;
+      rows.slice(0, 15).forEach((row, idx) => {
+        const text = (row || []).map(normalizeHeader).join(' | ');
+        const score = headerWords.reduce((sum, word) => sum + (text.includes(word) ? 1 : 0), 0);
+        if (score > bestScore) {
+          bestScore = score;
+          bestIndex = idx;
+        }
+      });
+      return bestIndex;
+    }
+
+    function buildAdaptiveERCA(item) {
+      const tema = item.tema || 'el contenido de la semana';
+      const dcd = item.dcd || 'la destreza indicada en el mapeo';
+      return {
+        act: `Activación de conocimientos previos sobre “${tema}” mediante una pregunta detonante, ejemplo visual o dinámica breve. Recuperar lo que el grupo ya sabe antes de abordar la destreza: ${dcd}`,
+        cons: `Desarrollo guiado de “${tema}” con modelado docente, ejemplos progresivos y práctica acompañada. La explicación y las actividades deben evidenciar directamente la destreza: ${dcd}`,
+        consol: `Aplicación y comprobación del aprendizaje de “${tema}” mediante un reto, producto breve o ejercicio de salida alineado con la destreza: ${dcd}`
+      };
+    }
+
+    function mappingRowsToCurriculum(rows, fileName) {
+      if (!Array.isArray(rows) || rows.length === 0) return [];
+
+      const headerRowIndex = detectHeaderRow(rows);
+      const headers = rows[headerRowIndex] || [];
+
+      const col = {
+        sem: findHeaderIndex(headers, ['semana', 'sem', 'n semana', 'numero de semana']),
+        subject: findHeaderIndex(headers, ['asignatura', 'materia', 'area']),
+        trimestre: findHeaderIndex(headers, ['trimestre', 'periodo', 'quimestre']),
+        unidad: findHeaderIndex(headers, ['unidad', 'unidad didactica']),
+        fechas: findHeaderIndex(headers, ['fechas lectivas', 'fecha', 'fechas', 'rango de fechas']),
+        per: findHeaderIndex(headers, ['periodos', 'periodos semanales', 'horas', 'carga horaria']),
+        tema: findHeaderIndex(headers, ['tema principal', 'tema', 'contenido', 'contenidos', 'contenido esencial']),
+        dcd: findHeaderIndex(headers, ['dcd', 'destreza con criterio de desempeno', 'destrezas con criterios de desempeno', 'destreza', 'destrezas']),
+        comp: findHeaderIndex(headers, ['competencias', 'competencia', 'competencias afectadas', 'criterio de evaluacion']),
+        act: findHeaderIndex(headers, ['experiencia', 'anticipacion', 'activacion', 'erca experiencia']),
+        cons: findHeaderIndex(headers, ['conceptualizacion', 'construccion', 'desarrollo', 'erca conceptualizacion']),
+        consol: findHeaderIndex(headers, ['aplicacion', 'consolidacion', 'transferencia', 'erca aplicacion'])
+      };
+
+      // Si no se reconoce ningún encabezado curricular clave, mantenemos compatibilidad
+      // con el formato anterior: Semana=A, Tema=D, DCD=E.
+      if (col.sem === -1 && col.tema === -1 && col.dcd === -1) {
+        col.sem = 0;
+        col.tema = 3;
+        col.dcd = 4;
+      }
+
+      const imported = [];
+      let autoWeek = 1;
+      for (let r = headerRowIndex + 1; r < rows.length; r++) {
+        const row = rows[r] || [];
+        if (!row.some(v => String(v ?? '').trim())) continue;
+
+        let sem = col.sem >= 0 ? parseInt(row[col.sem], 10) : autoWeek;
+        if (isNaN(sem)) sem = autoWeek;
+
+        const tema = col.tema >= 0 ? String(row[col.tema] ?? '').trim() : '';
+        const dcd = col.dcd >= 0 ? String(row[col.dcd] ?? '').trim() : '';
+        if (!tema && !dcd) continue;
+
+        const item = {
+          sem,
+          subject: col.subject >= 0 && row[col.subject] ? String(row[col.subject]).trim() : document.getElementById('select-subject').value,
+          trimestre: col.trimestre >= 0 && row[col.trimestre] ? String(row[col.trimestre]).trim() : (sem <= 13 ? 'PRIMER TRIMESTRE' : sem <= 27 ? 'SEGUNDO TRIMESTRE' : 'TERCER TRIMESTRE'),
+          unidad: col.unidad >= 0 && row[col.unidad] ? String(row[col.unidad]).trim() : `U${Math.ceil(sem / 7)}`,
+          fechas: col.fechas >= 0 && row[col.fechas] ? String(row[col.fechas]).trim() : `Semana ${sem} (2026-2027)`,
+          per: col.per >= 0 && row[col.per] ? String(row[col.per]).trim() : '6',
+          tema: tema || `Contenido curricular - Semana ${sem}`,
+          dcd: dcd || 'Destreza no especificada en el archivo importado.',
+          comp: col.comp >= 0 && row[col.comp] ? String(row[col.comp]).trim() : 'Competencias alineadas al mapeo del docente',
+          sourceMapping: fileName
+        };
+
+        const adaptive = buildAdaptiveERCA(item);
+        item.act = col.act >= 0 && row[col.act] ? String(row[col.act]).trim() : adaptive.act;
+        item.cons = col.cons >= 0 && row[col.cons] ? String(row[col.cons]).trim() : adaptive.cons;
+        item.consol = col.consol >= 0 && row[col.consol] ? String(row[col.consol]).trim() : adaptive.consol;
+
+        imported.push(item);
+        autoWeek = Math.max(autoWeek + 1, sem + 1);
+      }
+
+      imported.sort((a, b) => a.sem - b.sem);
+      return imported;
+    }
+
+    function applyImportedMapping(imported, fileName) {
+      if (!Array.isArray(imported) || imported.length === 0) {
+        showModal('Mapeo no reconocido', 'No encontré filas con Tema o DCD/Destreza. Revisa los encabezados del archivo.');
+        return;
+      }
+
+      curriculumDatabase = imported;
+      currentWeekIndex = 0;
+      try {
+        localStorage.setItem('eight_curriculum_plan_2026', JSON.stringify(curriculumDatabase));
+        localStorage.setItem('eight_mapping_file_2026', fileName);
+      } catch(e) {}
+
+      renderWeekDropdown();
+      document.getElementById('week-select').value = 0;
+      renderCurrentWeekData();
+      renderMapeoTable();
+
+      const status = document.getElementById('mapping-upload-status');
+      const statusText = document.getElementById('mapping-upload-status-text');
+      if (status && statusText) {
+        statusText.textContent = `${fileName} · ${imported.length} semanas/contenidos cargados`;
+        status.classList.remove('hidden');
+      }
+
+      showModal('Mapeo aplicado correctamente', `La aplicación se adaptó a ${imported.length} registros de “${fileName}”. Los temas, DCD, unidades, fechas, competencias y actividades ERCA disponibles ahora se basan en este Mapeo.`);
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const extension = file.name.split('.').pop().toLowerCase();
+
+      if (extension === 'json') {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const data = JSON.parse(e.target.result);
+            let imported = [];
+            if (Array.isArray(data)) {
+              if (data.length && Array.isArray(data[0])) imported = mappingRowsToCurriculum(data, file.name);
+              else imported = data.map((item, idx) => {
+                const normalized = {
+                  sem: Number(item.sem ?? item.semana ?? idx + 1),
+                  subject: item.subject ?? item.asignatura ?? document.getElementById('select-subject').value,
+                  trimestre: item.trimestre ?? item.periodo ?? 'TRIMESTRE',
+                  unidad: item.unidad ?? `U${Math.ceil((idx + 1) / 7)}`,
+                  fechas: item.fechas ?? item.fecha ?? `Semana ${idx + 1} (2026-2027)`,
+                  per: String(item.per ?? item.periodos ?? 6),
+                  tema: item.tema ?? item.contenido ?? '',
+                  dcd: item.dcd ?? item.destreza ?? '',
+                  comp: item.comp ?? item.competencias ?? 'Competencias alineadas al mapeo del docente',
+                  sourceMapping: file.name
+                };
+                const adaptive = buildAdaptiveERCA(normalized);
+                normalized.act = item.act ?? item.experiencia ?? adaptive.act;
+                normalized.cons = item.cons ?? item.conceptualizacion ?? adaptive.cons;
+                normalized.consol = item.consol ?? item.aplicacion ?? adaptive.consol;
+                return normalized;
+              }).filter(i => i.tema || i.dcd);
+            }
+            applyImportedMapping(imported, file.name);
+          } catch(err) {
+            showModal('Error de Formato', 'No se pudo interpretar el JSON como un Mapeo de contenidos compatible.');
+          }
+        };
+        reader.readAsText(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          let workbook;
+          if (extension === 'csv') {
+            workbook = XLSX.read(e.target.result, { type: 'string' });
+          } else {
+            const data = new Uint8Array(e.target.result);
+            workbook = XLSX.read(data, { type: 'array' });
+          }
+
+          let imported = [];
+          workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+            const sheetImported = mappingRowsToCurriculum(rows, file.name);
+            imported = imported.concat(sheetImported);
+          });
+
+          // Evita duplicados cuando un libro contiene hojas auxiliares repetidas.
+          const seen = new Set();
+          imported = imported.filter(item => {
+            const key = `${item.subject}|${item.sem}|${item.tema}|${item.dcd}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+
+          applyImportedMapping(imported, file.name);
+        } catch (err) {
+          console.error(err);
+          showModal('Error al leer el Mapeo', 'No se pudo interpretar el archivo. Usa Excel (.xlsx/.xls), CSV o JSON y procura incluir columnas como Semana, Tema y DCD/Destreza.');
+        }
+      };
+
+      if (extension === 'csv') reader.readAsText(file);
+      else reader.readAsArrayBuffer(file);
+    }
+
+    function exportPlanJSON() {
+      saveCurrentState();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(curriculumDatabase, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "Planificacion_Curricular_EightAcademy_2026_2027.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      showModal("Plan Exportado", "El respaldo completo en formato JSON se ha descargado exitosamente.");
+    }
+
+    function copyAIResponse() {
+      const text = document.getElementById('ai-response-text').textContent;
+      const dummy = document.createElement("textarea");
+      document.body.appendChild(dummy);
+      dummy.value = text;
+      dummy.select();
+      document.execCommand("copy");
+      document.body.removeChild(dummy);
+      showModal("Texto Copiado", "La propuesta de Gemini ha sido copiada al portapapeles.");
+    }
+
+    function showModal(title, body) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-body').textContent = body;
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

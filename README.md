@@ -1,3 +1,5 @@
+<img width="2160" height="1411" alt="image" src="https://github.com/user-attachments/assets/03102bc2-f1bc-45df-a053-dcbdcf89ffef" />
+
 # 📚 Planificador Curricular Inteligente
 
 > **Menos tiempo organizando. Más tiempo enseñando.**
